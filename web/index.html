@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Process Modeling Lab — プロセスデータ学習ラボ</title>
+<style>
+  :root{
+    --bg:#0f1117;--card:#1a1d27;--card2:#20243300;--border:#2a2d3a;
+    --accent:#5b8af5;--text:#e0e4f0;--muted:#7a7f9a;
+    --ok:#3ecf72;--warn:#f59e0b;--err:#f87171;
+    --tag-bg:#1e2435;--tag-text:#8aa4e8;
+    --panel:#131620;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:system-ui,"Helvetica Neue",sans-serif;min-height:100vh;padding:32px 16px 64px}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* Header */
+  .site-header{max-width:960px;margin:0 auto 40px}
+  .site-header h1{font-size:1.6rem;font-weight:700;letter-spacing:-.02em;margin-bottom:8px}
+  .site-header p{color:var(--muted);font-size:.9rem;line-height:1.7;max-width:680px}
+  .site-header .meta{margin-top:12px;display:flex;gap:12px;flex-wrap:wrap}
+  .badge{display:inline-block;background:var(--tag-bg);color:var(--tag-text);font-size:.72rem;padding:3px 10px;border-radius:20px;font-weight:500}
+
+  /* Grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;max-width:960px;margin:0 auto}
+
+  /* Card */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .card-header{padding:18px 20px 12px}
+  .card-title{font-size:1rem;font-weight:700;margin-bottom:4px}
+  .card-subtitle{font-size:.78rem;color:var(--muted);font-weight:500;margin-bottom:10px;letter-spacing:.01em}
+  .card-desc{font-size:.82rem;color:#bcc3dc;line-height:1.65}
+
+  /* Concept panel */
+  .concept{background:var(--panel);border-top:1px solid var(--border);padding:14px 20px}
+  .concept-head{font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+  .concept-body{font-size:.8rem;color:#a8b0cc;line-height:1.7}
+  .concept-body code{font-family:monospace;background:#1e2435;border-radius:3px;padding:1px 5px;font-size:.77rem;color:#8aa4e8}
+
+  /* Algorithm steps */
+  .steps{margin-top:8px;padding-left:14px}
+  .steps li{font-size:.79rem;color:#a0a8c4;line-height:1.6;margin-bottom:3px}
+  .steps li::marker{color:var(--accent)}
+
+  /* Controls */
+  .card-controls{padding:14px 20px 0;display:flex;align-items:center;gap:10px}
+  button{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:.83rem;cursor:pointer;font-weight:600;transition:opacity .15s}
+  button:hover{opacity:.85}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .status{font-size:.77rem;color:var(--muted)}
+  .status.running{color:var(--warn);animation:blink 1.4s ease-in-out infinite}
+  .status.done{color:var(--ok)}
+  .status.error{color:var(--err)}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+
+  /* Results */
+  .results-wrap{padding:14px 20px}
+  .results{display:flex;flex-direction:column;gap:10px}
+  .results img{width:100%;border-radius:8px;border:1px solid var(--border)}
+
+  /* Interpretation (shown after run) */
+  .interp{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:10px;display:none}
+  .interp.visible{display:block}
+  .interp-head{font-size:.72rem;font-weight:700;color:var(--ok);letter-spacing:.07em;text-transform:uppercase;margin-bottom:7px}
+  .interp-body{font-size:.8rem;color:#a8b0cc;line-height:1.65}
+
+  /* Source link */
+  .card-footer{padding:10px 20px 16px;display:flex;justify-content:flex-end}
+  .src-link{font-size:.73rem;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:3px 9px;transition:color .15s,border-color .15s}
+  .src-link:hover{color:var(--accent);border-color:var(--accent);text-decoration:none}
+
+  /* Intro note */
+  .intro-note{max-width:960px;margin:0 auto 28px;background:#1a2035;border:1px solid #2a3555;border-radius:8px;padding:14px 18px;font-size:.82rem;color:#8898c4;line-height:1.6}
+  .intro-note strong{color:#aabde8}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>Process Modeling Lab</h1>
+  <p>プロセスデータのモデル化・診断手法を数値計算で体験するインタラクティブ学習ラボです。各シミュレーションは合成データを生成し、NumPy だけで実装されたアルゴリズムを実際に動かして結果を確認できます。</p>
+  <div class="meta">
+    <span class="badge">NumPy / pandas</span>
+    <span class="badge">回帰分析</span>
+    <span class="badge">PLS / PCR</span>
+    <span class="badge">JIT ソフトセンサー</span>
+    <span class="badge">グレーボックス</span>
+    <span class="badge">転移学習</span>
+  </div>
+</header>
+
+<div class="intro-note">
+  <strong>使い方：</strong>各カードの「実行」を押すとシミュレーションが走ります（10〜30秒）。結果の画像とともに「結果の見方」が表示されます。アルゴリズムの実装は
+  <a href="https://github.com/TNKS1407/process-modeling-lab" target="_blank">GitHub のソースコード</a>（<code>process_modeling_core.py</code>）に公開しています。
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const EXPS = [
+  {
+    id: "regression",
+    title: "単回帰",
+    subtitle: "Standardized OLS = Correlation",
+    desc: "標準化された単回帰の傾きが、XとYの相関係数と数値的に一致することを確認します。",
+    concept: `
+      <p>OLS（最小二乗法）で X, Y を標準化してから回帰すると、推定された傾き β* は</p>
+      <p style="margin:8px 0 0 12px"><code>β* = Σ(x_i · y_i) / Σ(x_i²)</code></p>
+      <p style="margin:6px 0 0 0">となり、これはピアソン相関係数 r と完全に一致します。</p>
+    `,
+    steps: [
+      "合成データ（n=50）を生成し、X・Y を標準化",
+      "標準化済みデータに OLS を適用して傾き β* を推定",
+      "Pearson 相関係数 r を直接計算",
+      "β* と r の差（絶対値）を表示 → ほぼゼロになる",
+    ],
+    interp: "散布図上の OLS 直線の傾きと表示される相関係数がほぼ一致するはずです。タイトルに両値と差が表示されます。差が 1e-6 以下であれば数値計算で一致していることが確認できます。",
+    src: "process_modeling_core.py#L126-L139",
+  },
+  {
+    id: "multicollinearity",
+    title: "多重共線性と PLS",
+    subtitle: "Multicollinearity / VIF / PLS",
+    desc: "x1 + x2 + x3 ≈ const という制約が入ったデータで OLS が不安定になることを示し、PLS で係数が安定することを比較します。",
+    concept: `
+      <p>多重共線性では <code>X^T X</code> が特異（または準特異）になるため、OLS の解が微小な入力変動で大きく変わります。</p>
+      <p style="margin:8px 0 0 0">PLS（偏最小二乗法）は共分散を最大化する潜在変数空間に射影するため、共線的な変数が多くても安定した係数が得られます。VIF（分散拡大係数）とコンディション数で多重共線性を定量評価します。</p>
+    `,
+    steps: [
+      "x1+x2+x3≈14 の制約を持つ 80 サンプルを生成（A/B セット）",
+      "OLS と PLS（1〜3 成分）を両データに適用し、標準化係数を比較",
+      "5 分割交差検証で最適 PLS 成分数を決定",
+      "VIF テーブルとコンディション数で多重共線性を定量化",
+    ],
+    interp: "OLS では A/B のデータがわずかに違うだけで係数が大きく変動（不安定）します。PLS R=2〜3 は両データでほぼ同じ係数になるはずです。VIF が 10 超・コンディション数が 100 超なら多重共線性が深刻です。",
+    src: "process_modeling_core.py#L238-L331",
+  },
+  {
+    id: "jit",
+    title: "JIT 型ソフトセンサー",
+    subtitle: "Just-In-Time / Local Models",
+    desc: "メンテナンス後リセット・非線形・運転モード差を含むプロセスデータで、グローバル PLS と局所モデル（JIT）を比較します。",
+    concept: `
+      <p>JIT（Just-In-Time）型ソフトセンサーは、予測したいクエリ点の「近傍サンプルだけ」で局所モデルを構築します。グローバルモデルより非線形・非定常データに強い反面、計算コストが高いトレードオフがあります。</p>
+      <p style="margin:8px 0 0 0">局所モデルの種類：<code>kNN（加重平均）</code>、<code>局所線形回帰（リッジ）</code>、<code>局所加重 PLS</code></p>
+    `,
+    steps: [
+      "14 変数・420 サンプルの合成プロセスデータを生成（メンテ周期・運転モード変動あり）",
+      "時系列で 72% 訓練 / 28% テストに分割（シャッフルなし）",
+      "グローバル PLS・1NN・k NN・局所線形・局所加重 PLS で予測",
+      "RMSE / MAE / R² でモデルを比較",
+    ],
+    interp: "グローバル PLS は非線形部分でまとまった誤差が出やすく、局所加重 PLS や局所線形モデルの方が RMSE が小さくなるはずです。残差プロットで誤差が大きい区間（メンテ直後・運転モード切替）を確認してみてください。",
+    src: "process_modeling_core.py#L668-L686",
+  },
+  {
+    id: "graybox",
+    title: "グレーボックスモデル",
+    subtitle: "Physics + Statistics Hybrid",
+    desc: "物理モデル単体・統計モデル単体・パラレル型・シリアル型・複合型の 5 種類を RMSE・R² で比較します。",
+    concept: `
+      <p>グレーボックスモデルは「物理の知識」と「データドリブンな補正」を組み合わせます。</p>
+      <ul class="steps" style="margin-top:6px">
+        <li><strong>ホワイトボックス：</strong> 物理式のみ <code>y ≈ θ·g(x)</code></li>
+        <li><strong>ブラックボックス：</strong> データのみで Ridge 回帰</li>
+        <li><strong>パラレル型：</strong> 物理予測の残差を統計モデルで補正</li>
+        <li><strong>シリアル型：</strong> データで θ を学習し、物理式に代入</li>
+        <li><strong>複合型：</strong> シリアル + 残差補正</li>
+      </ul>
+    `,
+    steps: [
+      "物理シグナル g = feed·exp(−850/(T+273))·τ/P を持つ合成データ 260 件を生成",
+      "70% で訓練、30% でテスト（時系列分割）",
+      "5 種類のモデルを全て訓練・予測",
+      "RMSE / MAE / R² でランキング表示",
+    ],
+    interp: "多くの場合、ホワイトボックスだけでは残差が大きく、複合型（パラレルまたはシリアル + 残差補正）が最も R² が高くなります。物理知識が正確であれば複合型と純統計型の差が大きく開きます。",
+    src: "process_modeling_core.py#L703-L742",
+  },
+  {
+    id: "transfer",
+    title: "転移学習",
+    subtitle: "Heterogeneous Domain Adaptation (FEHDA)",
+    desc: "センサー構成が異なる 2 プロセス間（ソース 220 件 vs ターゲット 12 件）で、特徴空間拡張による転移学習を検証します。",
+    concept: `
+      <p>ターゲットドメインのデータが少ない場合、ソースドメインの豊富なデータを使いたいですが、センサー種類が違うと直接使えません。</p>
+      <p style="margin:8px 0 0 0">FEHDA 型特徴拡張は、共通センサーとドメイン固有センサーを連結した「拡張特徴空間」にマッピングし、両ドメインのデータを同一空間で学習します。バギング Ridge でアンサンブルして不確かさ推定も行います。</p>
+    `,
+    steps: [
+      "共通 8 変数 + ソース固有 4 + ターゲット固有 4 の合成ドメインを生成",
+      "ターゲットのみ・共通変数のみ・両ドメイン共通・FEHDA 特徴拡張 の 4 手法を比較",
+      "FEHDA では 100 モデルのバギングで平均予測と不確かさ幅を算出",
+      "RMSE でランキング表示",
+    ],
+    interp: "ターゲットのみ（12 件）は過学習しやすく RMSE が大きくなります。FEHDA は少ないターゲットデータを補い、不確かさバンド付きでターゲットの実測値を追うはずです。ソースのみより FEHDA が良いかを確認してください。",
+    src: "process_modeling_core.py#L749-L832",
+  },
+  {
+    id: "rawdata",
+    title: "生データ診断",
+    subtitle: "Automated Data Quality Check",
+    desc: "外れ値・レンジ変更・トレンド・周期・欠損・下限張り付き・多峰性・高相関ペアを自動検出するルールベース診断器を動かします。",
+    concept: `
+      <p>モデリング前の生データ診断は品質確保の第一歩です。各変数に対して以下の指標を計算します。</p>
+      <ul class="steps" style="margin-top:6px">
+        <li><strong>外れ値：</strong> MAD ロバスト Z スコア &gt; 3.5</li>
+        <li><strong>レンジ変化：</strong> 差分の最大値 / IQR &gt; 7</li>
+        <li><strong>トレンド：</strong> 時刻との相関 &gt; 0.65</li>
+        <li><strong>周期性：</strong> 最大自己相関 &gt; 0.45</li>
+        <li><strong>下限張り付き：</strong> 最小値への集中率 &gt; 5%</li>
+        <li><strong>多峰性：</strong> ヒストグラムのピーク数 ≥ 2</li>
+      </ul>
+    `,
+    steps: [
+      "9 変数・360 サンプルの診断用合成データを生成（各問題パターンを意図的に埋め込み）",
+      "各変数に対して 7 種類の統計検定を実行",
+      "フラグ付きサマリーテーブルと時系列プロットを出力",
+      "高相関ペア（|r| ≥ 0.85）も一覧表示",
+    ],
+    interp: "各変数のサブプロットで、タイトルにフラグが表示されます（赤=問題あり、緑=OK）。診断サマリーテーブルで missing_rate・outlier_rate・flags を確認してください。実際のプロセスデータでもこの診断器をそのまま使えます。",
+    src: "process_modeling_core.py#L839-L947",
+  },
+];
+
+const state = {};
+
+function createCard(exp) {
+  const div = document.createElement("div");
+  div.className = "card";
+  div.innerHTML = `
+    <div class="card-header">
+      <div class="card-title">${exp.title}</div>
+      <div class="card-subtitle">${exp.subtitle}</div>
+      <div class="card-desc">${exp.desc}</div>
+    </div>
+    <div class="concept">
+      <div class="concept-head">アルゴリズム・理論</div>
+      <div class="concept-body">${exp.concept}
+        ${exp.steps ? `<ol class="steps" style="margin-top:10px">${exp.steps.map(s=>`<li>${s}</li>`).join("")}</ol>` : ""}
+      </div>
+    </div>
+    <div class="card-controls">
+      <button id="btn-${exp.id}">実行</button>
+      <span class="status" id="st-${exp.id}"></span>
+    </div>
+    <div class="results-wrap">
+      <div class="results" id="res-${exp.id}"></div>
+      <div class="interp" id="interp-${exp.id}">
+        <div class="interp-head">結果の見方</div>
+        <div class="interp-body">${exp.interp}</div>
+      </div>
+    </div>
+    <div class="card-footer">
+      <a class="src-link" href="https://github.com/TNKS1407/process-modeling-lab/blob/main/process_modeling_core.py" target="_blank">
+        ソースコード (${exp.src}) →
+      </a>
+    </div>
+  `;
+  div.querySelector(`#btn-${exp.id}`).addEventListener("click", () => runExp(exp.id));
+  return div;
+}
+
+document.getElementById("grid").append(...EXPS.map(createCard));
+
+async function runExp(expId) {
+  const btn = document.getElementById(`btn-${expId}`);
+  const st = document.getElementById(`st-${expId}`);
+  const res = document.getElementById(`res-${expId}`);
+  const interp = document.getElementById(`interp-${expId}`);
+  btn.disabled = true;
+  st.className = "status running";
+  st.textContent = "実行中...";
+  res.innerHTML = "";
+  interp.classList.remove("visible");
+
+  try {
+    const r = await fetch("/api/run", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({exp:expId})});
+    const {job_id} = await r.json();
+    poll(job_id, expId, btn, st, res, interp);
+  } catch(e) {
+    st.className = "status error"; st.textContent = "接続エラー"; btn.disabled = false;
+  }
+}
+
+async function poll(jobId, expId, btn, st, res, interp) {
+  try {
+    const r = await fetch("/api/status", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({job_id:jobId})});
+    const data = await r.json();
+    if (data.status === "running") {
+      setTimeout(() => poll(jobId, expId, btn, st, res, interp), 1200);
+    } else if (data.status === "done") {
+      st.className = "status done"; st.textContent = `完了 (${data.images.length} 枚)`;
+      res.innerHTML = data.images.map(img => `<img src="${img.data}" alt="${img.name}">`).join("");
+      interp.classList.add("visible");
+      btn.disabled = false;
+    } else {
+      st.className = "status error"; st.textContent = data.error || "エラー"; btn.disabled = false;
+    }
+  } catch(e) {
+    setTimeout(() => poll(jobId, expId, btn, st, res, interp), 2000);
+  }
+}
+</script>
+</body>
+</html>
