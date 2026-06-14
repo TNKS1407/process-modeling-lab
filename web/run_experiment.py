@@ -10,6 +10,9 @@ from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")
+# 結果PNG内の日本語（タイトル・軸・表ラベル）が豆腐(□)に化けないよう、日本語フォントを指定。
+matplotlib.rcParams["font.family"] = ["Meiryo", "MS Gothic", "Yu Gothic", "DejaVu Sans"]
+matplotlib.rcParams["axes.unicode_minus"] = False
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
